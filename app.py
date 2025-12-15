@@ -67,7 +67,7 @@ def load_data_from_gcs():
 
     base = "gs://4geeks-ds-lab-data/predicting-poverty"
 
-    with fs.open(f"{base}/train_values_wJZrCml.csv") as f:
+    with fs.open(f"{base}/train_values_wJZrCmI.csv") as f:
         train_values = pd.read_csv(f)
 
     with fs.open(f"{base}/train_labels.csv") as f:
