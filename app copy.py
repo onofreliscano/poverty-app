@@ -5,14 +5,24 @@ import gcsfs
 import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
+from models_utils import build_full_feature_df
 import shap
 
-from models_utils import build_full_feature_df
+# # ------------------------------
+# # Load XGBoost model
+# # ------------------------------
+# @st.cache_resource
+# def load_model():
+#     # comment: Load trained model from models folder
+#     return joblib.load("models/notebooks_generated_best_model.pkl")
 
+# model = load_model()
 
-# ====================================================
-#   LOAD MODEL (FROM GCS)
-# ====================================================
+# st.title("Poverty Probability Predictor")
+
+# ------------------------------
+# Load XGBoost model (from GCS)
+# ------------------------------
 
 @st.cache_resource
 def load_model():
@@ -24,16 +34,13 @@ def load_model():
     ) as f:
         return joblib.load(f)
 
-
 model = load_model()
 
 st.title("Poverty Probability Predictor")
 
-
-# ====================================================
-#   INPUT FIELDS
-# ====================================================
-
+# ------------------------------
+# Input fields for prediction
+# ------------------------------
 country = st.selectbox("Country", ["C", "A", "D", "G", "F", "I", "J"])
 age = st.number_input("Age", 0, 120, 25)
 is_urban = st.selectbox("Urban?", ["Yes", "No"])
@@ -47,69 +54,78 @@ user_inputs = {
     "is_urban": 1 if is_urban == "Yes" else 0,
     "female": 1 if female == "Yes" else 0,
     "education_level": int(education_level),
-    "num_shocks_last_year": int(num_shocks_last_year),
+    "num_shocks_last_year": int(num_shocks_last_year)
 }
 
-
-# ====================================================
-#   PREDICTION
-# ====================================================
-
-if st.button("Predict v1.3"):
+# ------------------------------
+# Prediction button
+# ------------------------------
+if st.button("Predict v1.2"):
     df_ready = build_full_feature_df(user_inputs)
-    st.session_state["df_ready"] = df_ready
 
     st.write("### DF Ready")
     st.write(df_ready)
 
     try:
         pred = model.predict(df_ready)[0]
-        st.session_state["prediction"] = pred
         st.success(f"Poverty probability: {pred:.4f}")
     except Exception as e:
         st.error(f"Error: {e}")
 
 
-# ====================================================
-#   SHAP VALUES (ON-DEMAND, SAFE)
-# ====================================================
+# # ------------------------------
+# # Load XGBoost model (from GCS)
+# # ------------------------------
+# @st.cache_resource
+# def load_model():
+#     # comment: Load trained model from GCS bucket
+#     fs = gcsfs.GCSFileSystem()
+#     with fs.open(
+#         "gs://4geeks-ds-lab-data/notebooks/generated/best_model.pkl",
+#         "rb"
+#     ) as f:
+#         return joblib.load(f)
 
-@st.cache_resource
-def get_shap_explainer(model):
-    # comment: Cache SHAP TreeExplainer for performance
-    return shap.TreeExplainer(model)
+# model = load_model()
+
+# st.title("Poverty Probability Predictor")
+
+# ====================================================
+#   SHAP VALUES CALCULATION
+# ====================================================
 
 
 if st.button("Show SHAP explanation"):
-    if "df_ready" not in st.session_state:
-        st.warning("Please run a prediction first.")
-    else:
-        df_ready = st.session_state["df_ready"]
+    df_ready = build_full_feature_df(user_inputs)
 
-        with st.spinner("Computing SHAP values..."):
-            explainer = get_shap_explainer(model)
-            shap_values = explainer.shap_values(df_ready)
+    with st.spinner("Computing SHAP values..."):
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(df_ready)
 
-            fig, ax = plt.subplots()
-            shap.summary_plot(
-                shap_values,
-                df_ready,
-                plot_type="bar",
-                show=False
-            )
-            st.pyplot(fig)
+        fig, ax = plt.subplots()
+        shap.summary_plot(
+            shap_values,
+            df_ready,
+            plot_type="bar",
+            show=False
+        )
+        st.pyplot(fig)
+
+
+
 
 
 # ====================================================
-#   DATA VISUALIZATION (FROM GCS)
+#   DATA VISUALIZATION (READ FROM GCS BUCKET)
 # ====================================================
 
 st.header("📊 Data Explorer (from Google Cloud Storage)")
 
 @st.cache_resource
 def load_data_from_gcs():
-    # comment: Load training datasets directly from GCS
+    """Load the training datasets directly from a GCS bucket."""
     fs = gcsfs.GCSFileSystem()
+
     base = "gs://4geeks-ds-lab-data/predicting-poverty"
 
     with fs.open(f"{base}/train_values_wJZrCmI.csv") as f:
@@ -118,7 +134,8 @@ def load_data_from_gcs():
     with fs.open(f"{base}/train_labels.csv") as f:
         train_labels = pd.read_csv(f)
 
-    return train_values.merge(train_labels, on="row_id", how="left")
+    df = train_values.merge(train_labels, on="row_id", how="left")
+    return df
 
 
 if st.checkbox("Load dataset and show charts"):
@@ -129,7 +146,7 @@ if st.checkbox("Load dataset and show charts"):
     st.write(df.head())
 
     # --------------------------
-    # Histogram
+    # Histogram of poverty
     # --------------------------
     st.subheader("Histogram – Poverty Probability")
     fig, ax = plt.subplots()
@@ -140,13 +157,13 @@ if st.checkbox("Load dataset and show charts"):
     # Choropleth map
     # --------------------------
     COUNTRY_MAP = {
-        "A": "MEX",  # Mexico
-        "C": "COL",  # Colombia
-        "D": "PER",  # Peru
-        "F": "CHL",  # Chile
-        "G": "ARG",  # Argentina
-        "I": "BRA",  # Brazil
-        "J": "VEN",  # Venezuela
+        "A": "KEN",
+        "C": "TZA",
+        "D": "UGA",
+        "F": "ZMB",
+        "G": "NGA",
+        "I": "MWI",
+        "J": "ETH",
     }
 
     df["iso"] = df["country"].map(COUNTRY_MAP)
@@ -158,6 +175,7 @@ if st.checkbox("Load dataset and show charts"):
         locations="iso",
         color="poverty_probability",
         color_continuous_scale="Reds",
-        title="Average Poverty Probability",
+        title="Average Poverty Probability"
     )
     st.plotly_chart(fig_map)
+
