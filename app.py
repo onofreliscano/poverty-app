@@ -28,6 +28,8 @@ def load_model():
 model = load_model()
 
 st.title("Poverty Probability Predictor")
+st.write("DEBUG – pipeline steps:")
+st.write(model.named_steps)
 
 
 # ====================================================
