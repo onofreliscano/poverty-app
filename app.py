@@ -22,6 +22,7 @@ from models_utils import build_full_feature_df
 # ------------------------------
 # Load XGBoost model (from GCS)
 # ------------------------------
+
 @st.cache_resource
 def load_model():
     # comment: Load trained model from GCS bucket
@@ -55,20 +56,20 @@ user_inputs = {
     "num_shocks_last_year": int(num_shocks_last_year)
 }
 
-# # ------------------------------
-# # Prediction button
-# # ------------------------------
-# if st.button("Predict"):
-#     df_ready = build_full_feature_df(user_inputs)
+# ------------------------------
+# Prediction button
+# ------------------------------
+if st.button("Predict v1.2"):
+    df_ready = build_full_feature_df(user_inputs)
 
-#     st.write("### DF Ready")
-#     st.write(df_ready)
+    st.write("### DF Ready")
+    st.write(df_ready)
 
-#     try:
-#         pred = model.predict(df_ready)[0]
-#         st.success(f"Poverty probability: {pred:.4f}")
-#     except Exception as e:
-#         st.error(f"Error: {e}")
+    try:
+        pred = model.predict(df_ready)[0]
+        st.success(f"Poverty probability: {pred:.4f}")
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 
 # ------------------------------
