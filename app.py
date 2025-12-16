@@ -81,11 +81,20 @@ if st.button("Predict v1.3"):
 #     # comment: Create SHAP TreeExplainer without caching (safe)
 #     return shap.TreeExplainer(model)
 
+# def get_shap_explainer(pipeline):
+#     # comment: Extract native XGBoost Booster for SHAP compatibility
+#     xgb_model = pipeline.named_steps["model"]
+#     booster = xgb_model.get_booster()
+#     return shap.TreeExplainer(booster)
+# hack :
 def get_shap_explainer(pipeline):
-    # comment: Extract native XGBoost Booster for SHAP compatibility
     xgb_model = pipeline.named_steps["model"]
     booster = xgb_model.get_booster()
+
+    booster.set_attr(base_score="0.5")
+
     return shap.TreeExplainer(booster)
+
 
 with st.expander("🔍 Explain prediction with SHAP"):
     if st.button("Show SHAP explanation"):
