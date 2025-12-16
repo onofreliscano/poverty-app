@@ -76,8 +76,8 @@ if st.button("Predict v1.3"):
 
 @st.cache_resource
 def get_shap_explainer(model):
-    # comment: Cache SHAP TreeExplainer for performance
-    return shap.TreeExplainer(model)
+    # comment: Cache SHAP TreeExplainer, ignore model hashing
+      return shap.TreeExplainer(_model)
 
 
 if st.button("Show SHAP explanation"):
